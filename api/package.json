@@ -1,0 +1,10 @@
+{
+  "name": "hail-registration-api",
+  "version": "1.0.0",
+  "description": "Azure Functions backend for the Hail secondary-certificate re-issue registration form",
+  "main": "index.js",
+  "dependencies": {
+    "@azure/data-tables": "^13.2.2",
+    "@azure/storage-blob": "^12.17.0"
+  }
+}

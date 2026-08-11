@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0f6e6e; --teal-d:#0a5252; --teal-t:#e6f2f2;
+    --gold:#a9791f; --ok:#1a7f5a; --danger:#c0392b;
+    --bg:#eef3f3; --card:#ffffff; --ink:#1f2d2d; --muted:#6b7b7b; --line:#d5dede;
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;padding:16px}
+  .wrap{max-width:760px;margin:0 auto}
+
+  /* شريط الجهة الحكومية: الشعار + اسم الإدارة */
+  .gov{background:#fff;border:1px solid var(--line);border-bottom:0;border-radius:var(--r) var(--r) 0 0;
+       display:flex;align-items:center;gap:14px;padding:16px 22px}
+  .gov .logo{flex:none;height:56px;border-radius:10px;background:#fff;display:grid;place-items:center;padding:2px}
+  .gov .logo img{height:52px;width:auto;object-fit:contain;border-radius:8px;display:block}
+  .gov .logo svg{width:34px;height:34px}
+  .gov-txt b{display:block;font-size:17px;color:var(--teal-d)}
+  .gov-txt span{font-size:14px;color:var(--muted);display:block}
+  .gov-txt .gov-sub{font-size:13px;color:var(--teal);font-weight:500;margin-top:1px}
+
+  /* رأس النموذج */
+  .head{background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;padding:26px 26px}
+  .badge{font-size:12px;letter-spacing:1px;opacity:.85;border:1px solid rgba(255,255,255,.4);display:inline-block;padding:3px 10px;border-radius:999px;margin-bottom:14px}
+  .head h1{font-weight:900;font-size:22px;line-height:1.5}
+  .head p{opacity:.9;font-size:14px;margin-top:8px}
+  .head .scope{font-weight:700;opacity:1;font-size:14.5px;margin-top:10px}
+  .period{margin-top:14px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);
+          border-radius:12px;padding:12px 14px}
+  .period .period-t{display:block;font-size:12px;letter-spacing:1px;opacity:.85;margin-bottom:3px}
+  .period b{font-size:14.5px;line-height:1.7;font-weight:700}
+  .head .note{font-size:12.5px;opacity:.8;margin-top:12px}
+
+  .card{background:var(--card);border-radius:0 0 var(--r) var(--r);box-shadow:0 12px 40px rgba(15,110,110,.12);overflow:hidden}
+  form{padding:8px 26px 26px}
+
+  .sec{padding:22px 0 4px;border-top:1px solid var(--line);margin-top:14px}
+  .sec:first-of-type{border-top:0;margin-top:0}
+  .sec-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .sec-n{flex:none;width:30px;height:30px;border-radius:8px;background:var(--teal-t);color:var(--teal-d);font-weight:900;display:grid;place-items:center;font-size:14px}
+  .sec-h b{font-size:16px;color:var(--teal-d)}
+  .sec-note{font-size:13px;color:var(--muted);margin:-6px 0 14px}
+
+  .field{margin-bottom:20px}
+  label{display:block;font-weight:700;font-size:15px;margin-bottom:8px}
+  .req{color:var(--danger);font-weight:900}
+  .hint{font-size:12px;color:var(--muted);font-weight:400;margin-top:-4px;margin-bottom:8px}
+
+  input[type=text],input[type=email],input[type=tel],select{
+    width:100%;font-family:inherit;font-size:15px;padding:12px 14px;border:1.6px solid var(--line);
+    border-radius:10px;background:#fbfdfd;color:var(--ink);transition:border-color .15s,box-shadow .15s;outline:none;
+    text-align:right;direction:rtl}
+  #email{direction:ltr}
+  input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(15,110,110,.13)}
+  input.bad,select.bad{border-color:var(--danger);background:#fdf3f2}
+  input.good,select.good{border-color:var(--ok)}
+  .msg{font-size:12.5px;margin-top:6px;min-height:16px;color:var(--danger);display:none}
+  .msg.show{display:block}
+
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{display:flex;align-items:flex-start;gap:11px;border:1.6px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;background:#fbfdfd;transition:.15s}
+  .opt:hover{border-color:var(--teal)}
+  .opt input{margin-top:4px;accent-color:var(--teal);width:18px;height:18px;flex:none}
+  .opt.on{border-color:var(--teal);background:var(--teal-t)}
+  .opt span{font-size:14.5px}
+
+  .file{border:1.6px dashed var(--line);border-radius:10px;padding:14px;background:#fbfdfd;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .file .lbl{font-weight:700;font-size:14px}
+  .file .pick{background:var(--teal-t);color:var(--teal-d);border:0;font-family:inherit;font-weight:700;font-size:13px;padding:8px 16px;border-radius:8px;cursor:pointer}
+  .file.done{border-style:solid;border-color:var(--ok);background:#f2fbf7}
+  .file .name{font-size:12.5px;color:var(--muted);flex-basis:100%}
+  .file input{display:none}
+
+  .actions{margin-top:26px}
+  .submit{width:100%;background:var(--teal);color:#fff;border:0;font-family:inherit;font-weight:900;font-size:17px;padding:16px;border-radius:12px;cursor:pointer;transition:.15s}
+  .submit:hover{background:var(--teal-d)}
+  .submit:disabled{opacity:.55;cursor:not-allowed}
+  .err-box{display:none;background:#fdf3f2;border:1px solid #f0c9c4;color:var(--danger);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:14px}
+  .err-box.show{display:block}
+  .err-box ul{margin:6px 20px 0}
+
+  .done-view{display:none;text-align:center;padding:50px 26px 46px}
+  .done-view.show{display:block}
+  .check{width:78px;height:78px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:42px;margin:0 auto 22px}
+  .done-view h2{color:var(--teal-d);font-size:22px}
+  .reqno{margin:20px auto;max-width:340px;background:var(--teal-t);border:1.6px dashed var(--teal);border-radius:12px;padding:18px}
+  .reqno small{color:var(--muted);font-size:13px}
+  .reqno b{display:block;font-size:30px;color:var(--teal-d);letter-spacing:2px;margin-top:4px}
+
+  .foot{text-align:center;color:var(--muted);font-size:12.5px;padding:16px}
+  .status{margin:16px 0 2px;padding:12px 14px;border-radius:10px;font-size:14px;font-weight:700;text-align:center;display:none}
+  .status.open{display:block;background:#eaf7f1;color:#0a5b43;border:1px solid #bfe6d6}
+  .status.warn{display:block;background:#fdf5e6;color:#8a6410;border:1px solid #f0dca8}
+  .status.closed{display:block;background:#fdf3f2;color:#a5342a;border:1px solid #f0c9c4}
+  @media(max-width:520px){.head h1{font-size:19px}.head,form,.gov{padding-left:18px;padding-right:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ======= شريط الجهة: الشعار واسم الإدارة =======
+       لإضافة شعار وزارة التعليم الرسمي: ارفعه على Drive واجعله عاماً،
+       ثم ضع رابطه المباشر في src أدناه بدل الفراغ. سيظهر مكان الأيقونة. -->
+  <div class="gov">
+    <div class="logo">
+      <img src="data:image/jpeg;base64,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" alt="وزارة التعليم">
+    </div>
+    <div class="gov-txt">
+      <b>وزارة التعليم</b>
+      <span>الإدارة العامة للتعليم بمنطقة حائل</span>
+      <span class="gov-sub">إدارة تقويم الأداء المعرفي والمهاري</span>
+    </div>
+  </div>
+
+  <div class="head">
+    <span class="badge">تسجيل مبدئي · للسعوديين فقط</span>
+    <h1>التسجيل المبدئي للمتقدمين لإعادة إصدار شهادة إتمام الثانوية العامة 1448هـ</h1>
+    <p class="scope">خاص بالإدارة العامة للتعليم بمنطقة حائل — للسعوديين فقط.</p>
+    <div class="period">
+      <span class="period-t">فترة التسجيل</span>
+      <b>من 28 صفر 1448هـ (11 أغسطس 2026م) إلى 28 ربيع الأول 1448هـ (10 سبتمبر 2026م)</b>
+    </div>
+    <p class="note">يُربط الطلب برقم الهوية والبريد الإلكتروني ولا يُقبل التقديم أكثر من مرة.</p>
+  </div>
+
+  <div class="card">
+    <form id="form" novalidate>
+
+      <div id="status" class="status"></div>
+
+      <!-- ١) شروط التقديم -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">١</span><b>شروط التقديم</b></div>
+        <div class="sec-note">الرجاء تحديد جميع الخيارات الأربعة للتأكيد على استيفائك للشروط.</div>
+        <div class="opts" id="conds">
+          <label class="opt"><input type="checkbox" class="term c-cond"><span>أن يكون المتقدم سعوديًا.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-cond"><span>أن يكون قد حصل على شهادة الثانوية العامة في المملكة العربية السعودية بعد عام 1430/1431هـ، أو ما يعادلها دراسياً داخل المملكة.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-cond"><span>أن يكون قد مضى على تخرجه خمس سنوات فأكثر.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-cond"><span>ألا يكون قد حصل على مؤهل أكاديمي أعلى من شهادة الثانوية العامة.</span></label>
+        </div>
+        <div class="msg" data-for="conds">يجب تحديد جميع شروط التقديم الأربعة.</div>
+      </div>
+
+      <!-- ٢) البيانات الأساسية -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">٢</span><b>البيانات الأساسية</b></div>
+
+        <div class="field">
+          <label>البريد الإلكتروني <span class="req">*</span></label>
+          <div class="hint">سيُربط الطلب بهذا البريد ولا يمكن استخدامه مرتين.</div>
+          <input type="email" id="email" inputmode="email" placeholder="example@mail.com" autocomplete="email">
+          <div class="msg" data-for="email">صيغة البريد غير صحيحة.</div>
+        </div>
+
+        <div class="field">
+          <label>الاسم الرباعي للمتقدم/ة <span class="req">*</span></label>
+          <div class="hint">اكتب الاسم كاملاً رباعياً.</div>
+          <input type="text" id="fullName" placeholder="الاسم الأول واسم الأب والجد والعائلة">
+          <div class="msg" data-for="fullName">الرجاء إدخال الاسم رباعياً كاملاً.</div>
+        </div>
+
+        <div class="field">
+          <label>رقم الهوية الوطنية <span class="req">*</span></label>
+          <div class="hint">يبدأ بالرقم 1 ولا يقل عن ١٠ أرقام.</div>
+          <input type="text" id="nationalId" inputmode="numeric" maxlength="12" placeholder="1XXXXXXXXX" onpaste="return false" ondrop="return false" autocomplete="off">
+          <div class="msg" data-for="nationalId">رقم الهوية يجب أن يبدأ بـ 1 ولا يقل عن ١٠ أرقام.</div>
+        </div>
+
+        <div class="field">
+          <label>رقم الجوال <span class="req">*</span></label>
+          <div class="hint">يبدأ بـ 05 ولا يقل عن ١٠ أرقام. يُكتب يدوياً ولا يُقبل اللصق.</div>
+          <input type="tel" id="mobile" inputmode="numeric" maxlength="12" placeholder="05XXXXXXXX" onpaste="return false" ondrop="return false" autocomplete="off">
+          <div class="msg" data-for="mobile">رقم الجوال يجب أن يبدأ بـ 05 ولا يقل عن ١٠ أرقام.</div>
+        </div>
+
+        <div class="field">
+          <label>تأكيد رقم الجوال <span class="req">*</span></label>
+          <div class="hint">أعد كتابة رقم الجوال يدوياً للتأكيد (اللصق غير مسموح).</div>
+          <input type="tel" id="mobileConfirm" inputmode="numeric" maxlength="12" placeholder="05XXXXXXXX" onpaste="return false" ondrop="return false" autocomplete="off">
+          <div class="msg" data-for="mobileConfirm">رقم تأكيد الجوال لا يطابق رقم الجوال.</div>
+        </div>
+
+        <div class="field">
+          <label>رقم جوال أحد الأقارب <span class="req">*</span></label>
+          <div class="hint">يبدأ بـ 05 ولا يقل عن ١٠ أرقام. يُكتب يدوياً ولا يُقبل اللصق.</div>
+          <input type="tel" id="relativeMobile" inputmode="numeric" maxlength="12" placeholder="05XXXXXXXX" onpaste="return false" ondrop="return false" autocomplete="off">
+          <div class="msg" data-for="relativeMobile">رقم جوال القريب يجب أن يبدأ بـ 05 ولا يقل عن ١٠ أرقام.</div>
+        </div>
+
+        <div class="field">
+          <label>الجنس <span class="req">*</span></label>
+          <div class="opts" data-radio="gender">
+            <label class="opt"><input type="radio" name="gender" value="ذكر"><span>ذكر</span></label>
+            <label class="opt"><input type="radio" name="gender" value="أنثى"><span>أنثى</span></label>
+          </div>
+          <div class="msg" data-for="gender">حقل الجنس مطلوب.</div>
+        </div>
+
+        <div class="field">
+          <label>مقر السكن <span class="req">*</span></label>
+          <select id="residence">
+            <option value="">— اختر —</option>
+            <option>حائل</option><option>الغزالة</option><option>بقعاء</option>
+            <option>الشنان</option><option>سميراء</option><option>السليمي</option>
+            <option>الحائط</option><option>موقق</option><option>الشملي</option>
+          </select>
+          <div class="msg" data-for="residence">حقل مقر السكن مطلوب.</div>
+        </div>
+      </div>
+
+      <!-- ٣) البيانات الأكاديمية -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">٣</span><b>البيانات الأكاديمية</b></div>
+
+        <div class="field">
+          <label>إدارة التعليم المتخرج منها <span class="req">*</span></label>
+          <select id="eduDept">
+            <option value="">— اختر —</option>
+            <option>حائل</option><option>القصيم</option><option>الحدود الشمالية</option><option>الرياض</option>
+            <option>مكة المكرمة</option><option>المدينة المنورة</option><option>جدة</option>
+            <option>الطائف</option><option>عسير</option><option>الباحة</option>
+            <option>الشرقية</option><option>الأحساء</option><option>جازان</option>
+          </select>
+          <div class="msg" data-for="eduDept">حقل إدارة التعليم مطلوب.</div>
+        </div>
+
+        <div class="field">
+          <label>عام التخرج من الثانوية العامة <span class="req">*</span></label>
+          <select id="gradYear">
+            <option value="">— اختر —</option>
+            <option>1430/1431</option><option>1431/1432</option><option>1432/1433</option>
+            <option>1433/1434</option><option>1434/1435</option><option>1435/1436</option>
+            <option>1436/1437</option><option>1437/1438</option><option>1438/1439</option>
+            <option>1439/1440</option><option>1440/1441</option><option>1441/1442</option>
+          </select>
+          <div class="msg" data-for="gradYear">حقل عام التخرج مطلوب.</div>
+        </div>
+
+        <div class="field">
+          <label>تخصص الشهادة <span class="req">*</span></label>
+          <div class="hint">اكتب التخصص كما هو مدوّن في الشهادة. يُكتب يدوياً ولا يُقبل اللصق.</div>
+          <input type="text" id="major" placeholder="مثال: علمي / أدبي / إداري..." onpaste="return false" ondrop="return false" autocomplete="off">
+          <div class="msg" data-for="major">حقل تخصص الشهادة مطلوب.</div>
+        </div>
+      </div>
+
+      <!-- ٤) المستندات -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">٤</span><b>المستندات المطلوبة (٣ مستندات إلزامية)</b></div>
+        <div id="fileWrap"></div>
+        <div class="msg" data-for="files">يجب إرفاق ٣ مستندات بالكامل.</div>
+      </div>
+
+      <!-- ٥) نوع الطلب -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">٥</span><b>نوع الطلب</b></div>
+        <div class="field">
+          <label>نوع الطلب الذي يرغب فيه المتقدم <span class="req">*</span></label>
+          <div class="opts" data-radio="requestType">
+            <label class="opt"><input type="radio" name="requestType" value="إعادة إصدار بنفس المعدل والتخصص (اختبار فقط)"><span>إعادة إصدار الشهادة بنفس المعدل والتخصص، تحديث سنة التخرج (اختبار فقط).</span></label>
+            <label class="opt"><input type="radio" name="requestType" value="إعادة إصدار لتغيير التخصص"><span>إعادة إصدار الشهادة لتغيير التخصص (دراسة الصفين الثاني والثالث الثانوي).</span></label>
+            <label class="opt"><input type="radio" name="requestType" value="إعادة إصدار لتحسين المعدل"><span>إعادة إصدار الشهادة لتحسين المعدل (دراسة الصفين الثاني والثالث الثانوي).</span></label>
+          </div>
+          <div class="msg" data-for="requestType">حقل نوع الطلب مطلوب.</div>
+        </div>
+      </div>
+
+      <!-- ٦) إقرار مقدم الطلب (قبل الإرسال مباشرة) -->
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">٦</span><b>إقرار مقدم الطلب</b></div>
+        <div class="sec-note">الرجاء الموافقة على جميع الإقرارات التالية قبل الإرسال.</div>
+        <div class="opts" id="acks">
+          <label class="opt"><input type="checkbox" class="term c-ack"><span>أتعهد بصحة البيانات المدخلة في النموذج.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-ack"><span>أُقرّ بأن فرصة إعادة إصدار شهادة إتمام الثانوية العامة تُتاح مرة واحدة فقط، وأنه لم يسبق لي التقدّم بطلب إعادة إصدار الشهادة الثانوية.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-ack"><span>أقرّ بأن أداء اختبار القدرات والتحصيلي خاضع لاشتراطات هيئة تقويم التعليم والتدريب.</span></label>
+          <label class="opt"><input type="checkbox" class="term c-ack"><span>أقرّ بأن قبول الشهادة الثانوية العامة المعاد إصدارها في الجامعات خاضع لاشتراطات الجامعة وسياسة القبول.</span></label>
+        </div>
+        <div class="msg" data-for="acks">يجب الموافقة على جميع الإقرارات.</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="submit" id="submit">إرسال الطلب</button>
+        <div class="err-box" id="errBox"></div>
+      </div>
+    </form>
+
+    <div class="done-view" id="done">
+      <div class="check">✓</div>
+      <h2>تم استلام طلبك بنجاح</h2>
+      <div class="reqno">
+        <small>رقم الطلب</small>
+        <b id="reqNo">—</b>
+      </div>
+      <p style="color:var(--muted);font-size:14px">احتفظ برقم الطلب للمراجعة. تم إرسال نسخة إلى بريدك الإلكتروني.</p>
+    </div>
+  </div>
+
+  <div class="foot">الإدارة العامة للتعليم بمنطقة حائل</div>
+</div>
+
+<script>
+  var RULES = {
+    fullName:      /^\S+(?:\s+\S+){3,}$/,
+    nationalId:    /^1[0-9]{9,}$/,
+    mobile:        /^05[0-9]{8,}$/,
+    relativeMobile:/^05[0-9]{8,}$/,
+    email:         /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  };
+
+  // ===== فترة التسجيل (بتوقيت السعودية +03:00) =====
+  var REG_START = new Date('2026-08-11T00:00:00+03:00');
+  var REG_END   = new Date('2026-09-10T23:59:59+03:00');
+  var NOW = new Date();
+  var REG_OPEN = (NOW >= REG_START && NOW <= REG_END);
+  (function(){
+    var box=document.getElementById('status');
+    if(NOW < REG_START){
+      box.className='status closed';
+      box.innerHTML='⏳ لم تبدأ فترة التسجيل بعد. يبدأ التسجيل يوم الثلاثاء 11 أغسطس 2026م (28 صفر 1448هـ).';
+    } else if(NOW > REG_END){
+      box.className='status closed';
+      box.innerHTML='⛔ انتهت فترة التسجيل بتاريخ 10 سبتمبر 2026م (28 ربيع الأول 1448هـ).';
+    } else {
+      var daysLeft=Math.ceil((REG_END-NOW)/86400000);
+      if(daysLeft<=3){
+        box.className='status warn';
+        box.innerHTML='⚠️ تبقّى '+daysLeft+' '+(daysLeft===1?'يوم':(daysLeft===2?'يومان':'أيام'))+' على انتهاء فترة التسجيل (تنتهي 10 سبتمبر 2026م). سارِع بالتقديم.';
+      } else {
+        box.className='status open';
+        box.innerHTML='✅ التسجيل مفتوح حتى 10 سبتمبر 2026م (28 ربيع الأول 1448هـ).';
+      }
+    }
+    if(!REG_OPEN){
+      var s=document.getElementById('submit');
+      s.disabled=true; s.textContent=(NOW<REG_START?'لم يبدأ التسجيل بعد':'انتهى التسجيل');
+    }
+  })();
+  var DOC_LABELS = ['صورة الهوية الوطنية','صورة من الشهادة السابقة','إثبات السكن / العنوان الوطني تفصيلي'];
+  var files = [null,null,null];
+
+  var fw = document.getElementById('fileWrap');
+  DOC_LABELS.forEach(function(lbl,i){
+    var row=document.createElement('div');
+    row.className='file'; row.style.marginBottom='12px'; row.id='file'+i;
+    row.innerHTML='<span class="lbl">'+(i+1)+'. '+lbl+' <span class="req">*</span></span>'+
+      '<button type="button" class="pick">اختيار ملف</button>'+
+      '<input type="file" accept=".pdf,.jpg,.jpeg,.png">'+
+      '<span class="name"></span>';
+    fw.appendChild(row);
+    var input=row.querySelector('input'), btn=row.querySelector('.pick'), nm=row.querySelector('.name');
+    btn.onclick=function(){input.click();};
+    input.onchange=function(){
+      var f=input.files[0]; if(!f) return;
+      if(f.size>10*1024*1024){alert('حجم الملف يتجاوز 10 ميجابايت'); input.value=''; return;}
+      var reader=new FileReader();
+      reader.onload=function(){
+        files[i]={name:f.name,mimeType:f.type||'application/octet-stream',data:reader.result.split(',')[1]};
+        row.classList.add('done'); btn.textContent='تغيير'; nm.textContent='✓ '+f.name;
+        clearMsg('files');
+      };
+      reader.readAsDataURL(f);
+    };
+  });
+
+  function el(id){return document.getElementById(id);}
+  function showMsg(k){var m=document.querySelector('.msg[data-for="'+k+'"]'); if(m)m.classList.add('show');}
+  function clearMsg(k){var m=document.querySelector('.msg[data-for="'+k+'"]'); if(m)m.classList.remove('show');}
+
+  ['email','fullName','nationalId','mobile'].forEach(function(id){
+    var input=el(id);
+    input.addEventListener('input',function(){
+      if(id==='nationalId'||id==='mobile') input.value=input.value.replace(/\D/g,'');
+      var v=input.value.trim();
+      if(!v){input.classList.remove('good','bad'); clearMsg(id); return;}
+      if(RULES[id].test(v)){input.classList.add('good');input.classList.remove('bad');clearMsg(id);}
+      else{input.classList.add('bad');input.classList.remove('good');showMsg(id);}
+      if(id==='mobile'){ checkConfirm(); checkRelative(); }
+    });
+  });
+
+  // جوال القريب: يبدأ بـ05 و١٠ أرقام، ويجب أن يختلف عن جوال المتقدم
+  el('relativeMobile').addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,''); checkRelative();
+  });
+  function checkRelative(){
+    var r=el('relativeMobile'), v=r.value.trim();
+    var msg=document.querySelector('.msg[data-for="relativeMobile"]');
+    if(!v){r.classList.remove('good','bad'); msg.classList.remove('show'); return false;}
+    if(!RULES.relativeMobile.test(v)){
+      msg.textContent='رقم جوال القريب يجب أن يبدأ بـ 05 ولا يقل عن ١٠ أرقام.';
+      r.classList.add('bad');r.classList.remove('good');msg.classList.add('show');return false;
+    }
+    if(v===el('mobile').value.trim()){
+      msg.textContent='يجب أن يكون رقم جوال القريب مختلفاً عن رقم جوالك.';
+      r.classList.add('bad');r.classList.remove('good');msg.classList.add('show');return false;
+    }
+    r.classList.add('good');r.classList.remove('bad');msg.classList.remove('show');return true;
+  }
+
+  // تأكيد الجوال: يُكتب يدوياً ويجب أن يطابق رقم الجوال
+  el('mobileConfirm').addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,''); checkConfirm();
+  });
+  function checkConfirm(){
+    var c=el('mobileConfirm'), v=c.value.trim();
+    if(!v){c.classList.remove('good','bad'); clearMsg('mobileConfirm'); return;}
+    if(v===el('mobile').value.trim() && RULES.mobile.test(v)){c.classList.add('good');c.classList.remove('bad');clearMsg('mobileConfirm');}
+    else{c.classList.add('bad');c.classList.remove('good');showMsg('mobileConfirm');}
+  }
+
+  document.querySelectorAll('[data-radio]').forEach(function(g){
+    g.addEventListener('change',function(){
+      g.querySelectorAll('.opt').forEach(function(o){o.classList.toggle('on',o.querySelector('input').checked);});
+      clearMsg(g.dataset.radio);
+    });
+  });
+  ['residence','eduDept','gradYear'].forEach(function(id){
+    el(id).addEventListener('change',function(){ if(el(id).value) clearMsg(id); });
+  });
+  el('major').addEventListener('input',function(){ if(this.value.trim()) clearMsg('major'); });
+
+  // إبراز خانات الشروط والإقرار
+  document.querySelectorAll('.term').forEach(function(cb){
+    cb.addEventListener('change',function(){
+      cb.closest('.opt').classList.toggle('on',cb.checked);
+      if(allChecked('c-cond')) clearMsg('conds');
+      if(allChecked('c-ack')) clearMsg('acks');
+    });
+  });
+  function allChecked(cls){
+    var arr=document.querySelectorAll('.'+cls);
+    return Array.prototype.every.call(arr,function(c){return c.checked;});
+  }
+  function radioVal(n){var c=document.querySelector('input[name="'+n+'"]:checked'); return c?c.value:'';}
+
+  el('form').addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!REG_OPEN){
+      var eb=el('errBox');
+      eb.innerHTML='<b>التسجيل مغلق حالياً.</b> فترة التسجيل من 11 أغسطس 2026م إلى 10 سبتمبر 2026م.';
+      eb.classList.add('show'); window.scrollTo({top:0,behavior:'smooth'}); return;
+    }
+    var d={
+      email:el('email').value.trim(), fullName:el('fullName').value.trim(),
+      nationalId:el('nationalId').value.trim(), mobile:el('mobile').value.trim(),
+      mobileConfirm:el('mobileConfirm').value.trim(), relativeMobile:el('relativeMobile').value.trim(),
+      gender:radioVal('gender'), residence:el('residence').value,
+      eduDept:el('eduDept').value, gradYear:el('gradYear').value,
+      major:el('major').value.trim(),
+      requestType:radioVal('requestType'),
+      agreed: allChecked('c-cond') && allChecked('c-ack'),
+      files:files.filter(Boolean)
+    };
+
+    var bad=false;
+    if(!allChecked('c-cond')){showMsg('conds');bad=true;}
+    if(!allChecked('c-ack')){showMsg('acks');bad=true;}
+    ['email','fullName','nationalId','mobile'].forEach(function(id){
+      if(!RULES[id].test(d[id])){el(id).classList.add('bad');showMsg(id);bad=true;}
+    });
+    if(!checkRelative()) bad=true;
+    if(d.mobileConfirm!==d.mobile || !RULES.mobile.test(d.mobileConfirm)){
+      el('mobileConfirm').classList.add('bad');showMsg('mobileConfirm');bad=true;
+    }
+    [['gender','gender'],['residence','residence'],['eduDept','eduDept'],['gradYear','gradYear'],['requestType','requestType']]
+      .forEach(function(p){ if(!d[p[1]]){showMsg(p[0]);bad=true;} });
+    if(!d.major){showMsg('major');bad=true;}
+    if(d.files.length!==3){showMsg('files');bad=true;}
+    if(bad){window.scrollTo({top:0,behavior:'smooth'}); return;}
+
+    var btn=el('submit'); btn.disabled=true; btn.textContent='جارٍ الإرسال...';
+    var errBox=el('errBox'); errBox.classList.remove('show');
+
+    fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res.ok){
+        el('form').style.display='none';
+        el('reqNo').textContent=res.requestNumber;
+        el('done').classList.add('show');
+        window.scrollTo({top:0,behavior:'smooth'});
+      }else{
+        btn.disabled=false; btn.textContent='إرسال الطلب';
+        errBox.innerHTML='<b>تعذّر إرسال الطلب:</b><ul><li>'+res.errors.join('</li><li>')+'</li></ul>';
+        errBox.classList.add('show');
+        window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+      }
+    })
+    .catch(function(err){
+      btn.disabled=false; btn.textContent='إرسال الطلب';
+      errBox.textContent='خطأ في الاتصال بالخادم: '+err.message;
+      errBox.classList.add('show');
+    });
+  });
+</script>
+</body>
+</html>
