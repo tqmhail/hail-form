@@ -99,7 +99,7 @@
     tb.innerHTML=rows.map(function(r){
       var cells=COLS.map(function(c){ var v=r[c[0]]||''; if(c[0]==='submittedAt') v=fmtDate(v); return '<td>'+String(v).replace(/</g,'&lt;')+'</td>'; }).join('');
       var docs=docList(r);
-      var docCell='<td>'+(docs.length? docs.map(function(u,i){ return '<a class="doc" href="'+proxyUrl(u)+'" target="_blank">مستند'+(i+1)+'</a>'; }).join(' · ') : '—')+'</td>';
+      var docCell='<td>'+(docs.length? docs.map(function(u,i){ var isPdf=u.indexOf('استمارة_الإقرار')>-1||decodeURIComponent(u).indexOf('استمارة_الإقرار')>-1; return '<a class="doc" href="'+proxyUrl(u)+'" target="_blank">'+(isPdf?'📄 الاستمارة':'مستند'+(i+1))+'</a>'; }).join(' · ') : '—')+'</td>';
       var gi=DATA.indexOf(r);
       var zipCell='<td>'+(docs.length? '<button class="zip" onclick="downloadZip('+gi+',this)">⬇ ZIP</button>':'—')+'</td>';
       return '<tr>'+cells+docCell+zipCell+'</tr>';

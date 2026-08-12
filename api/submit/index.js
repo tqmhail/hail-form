@@ -10,6 +10,7 @@
 const { TableClient, odata } = require("@azure/data-tables");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const crypto = require("crypto");
+const { buildAckPdf } = require("./ackpdf");
 
 // ===== فترة التسجيل (بتوقيت السعودية +03:00) =====
 const REG_START = new Date("2026-08-11T00:00:00+03:00");
@@ -117,6 +118,25 @@ module.exports = async function (context, req) {
       }
     }
     const reqNo = "1448-" + String(seq).padStart(6, "0");
+
+    // 6.5) توليد استمارة الإقرار PDF وحفظها مع المرفقات
+    try {
+      const saudiNow = new Date(Date.now() + 3 * 3600 * 1000);
+      const dateStr = saudiNow.toISOString().slice(0, 16).replace("T", " ");
+      const pdfBuf = await buildAckPdf(
+        { fullName: String(d.fullName).trim(), nationalId: nid, mobile: String(d.mobile).trim(),
+          relativeMobile: String(d.relativeMobile).trim(), email: email, gender: d.gender,
+          residence: d.residence, eduDept: d.eduDept, gradYear: d.gradYear,
+          major: String(d.major).trim(), requestType: d.requestType },
+        reqNo, dateStr
+      );
+      const pdfBlob = container.getBlockBlobClient(nid + "/استمارة_الإقرار_" + reqNo + ".pdf");
+      await pdfBlob.uploadData(pdfBuf, { blobHTTPHeaders: { blobContentType: "application/pdf" } });
+      links.push(pdfBlob.url);
+    } catch (pdfErr) {
+      context.log.error("PDF error: " + (pdfErr.message || pdfErr));
+      // لا نُفشل الطلب لو تعذّر توليد الاستمارة
+    }
 
     // 7) حفظ الطلب (المفتاح = الهوية لضمان عدم التكرار)
     await requests.createEntity({
