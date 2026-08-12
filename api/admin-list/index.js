@@ -8,7 +8,7 @@ const { TableClient } = require("@azure/data-tables");
 // ===== القائمة البيضاء: عدّل هذه بالبُرد المسموح لها =====
 // ضع بريد كل مسؤول مسموح له (بأحرف صغيرة). أضف/احذف حسب الحاجة.
 const ALLOWED_ADMINS = [
-  "oshl2013@gmail.com",
+  "oshl2@hotmail.com",
   "colleague1@example.com",
   "colleague2@example.com"
 ];
