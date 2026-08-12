@@ -1,28 +1,72 @@
 /**
  * Azure Function: config
- * تُرجع حالة فترة التسجيل ليعتمدها المتصفح (اختياري — الواجهة تحسبها أيضاً).
- * وجودها يجعل الخادم مرجعاً موحّداً للتاريخ.
+ * - بلا معامل: تُرجع حالة فترة التسجيل (يستخدمها النموذج).
+ * - ?action=admin: تُرجع كل الطلبات للوحة الإدارية (محمية بقائمة بيضاء).
+ * دُمج منطق اللوحة هنا لتفادي مشاكل اكتشاف دالة جديدة.
  */
+const { TableClient } = require("@azure/data-tables");
+
 const REG_START = new Date("2026-08-11T00:00:00+03:00");
 const REG_END   = new Date("2026-09-10T23:59:59+03:00");
 
-module.exports = async function (context, req) {
-  const now = new Date();
-  const open = now >= REG_START && now <= REG_END;
-  let state = "open";
-  if (now < REG_START) state = "before";
-  else if (now > REG_END) state = "after";
-  else if (Math.ceil((REG_END - now) / 86400000) <= 3) state = "warn";
+// ===== القائمة البيضاء: البُرد المسموح لها بفتح اللوحة =====
+const ALLOWED_ADMINS = [
+  "oshl@hotmail.com"
+];
 
-  context.res = {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-    body: {
-      open,
-      state,
-      startISO: REG_START.toISOString(),
-      endISO: REG_END.toISOString(),
-      daysLeft: Math.max(0, Math.ceil((REG_END - now) / 86400000))
-    }
+module.exports = async function (context, req) {
+  const respond = (status, body) => {
+    context.res = { status, headers: { "Content-Type": "application/json" }, body };
   };
+
+  try {
+    // ===== وضع اللوحة الإدارية =====
+    if (req.query && req.query.action === "admin") {
+      // قراءة هوية المستخدم
+      let email = "";
+      const header = req.headers["x-ms-client-principal"];
+      if (header) {
+        const decoded = JSON.parse(Buffer.from(header, "base64").toString("utf8"));
+        email = (decoded.userDetails || "").toLowerCase();
+      }
+      // التحقق من القائمة البيضاء
+      if (!email || ALLOWED_ADMINS.map(e => e.toLowerCase()).indexOf(email) === -1) {
+        return respond(403, { ok: false, error: "غير مصرّح لك بالوصول إلى هذه اللوحة." });
+      }
+      const conn = process.env.AZURE_STORAGE_CONNECTION_STRING;
+      if (!conn) return respond(500, { ok: false, error: "النظام غير مهيّأ." });
+
+      const requests = TableClient.fromConnectionString(conn, "Requests");
+      const rows = [];
+      for await (const e of requests.listEntities()) {
+        rows.push({
+          requestNo: e.RequestNo || "", submittedAt: e.SubmittedAt || "",
+          fullName: e.FullName || "", nationalId: e.NationalId || "",
+          mobile: e.Mobile || "", relativeMobile: e.RelativeMobile || "",
+          email: e.Email || "", gender: e.Gender || "", residence: e.Residence || "",
+          eduDept: e.EduDept || "", gradYear: e.GradYear || "", major: e.Major || "",
+          requestType: e.RequestType || "", documents: e.Documents || ""
+        });
+      }
+      rows.sort((a, b) => (a.requestNo || "").localeCompare(b.requestNo || ""));
+      return respond(200, { ok: true, count: rows.length, rows, admin: email });
+    }
+
+    // ===== وضع حالة فترة التسجيل (الافتراضي) =====
+    const now = new Date();
+    const open = now >= REG_START && now <= REG_END;
+    let state = "open";
+    if (now < REG_START) state = "before";
+    else if (now > REG_END) state = "after";
+    else if (Math.ceil((REG_END - now) / 86400000) <= 3) state = "warn";
+
+    return respond(200, {
+      open, state,
+      startISO: REG_START.toISOString(), endISO: REG_END.toISOString(),
+      daysLeft: Math.max(0, Math.ceil((REG_END - now) / 86400000))
+    });
+  } catch (err) {
+    context.log.error(err);
+    return respond(500, { ok: false, error: "خطأ: " + (err.message || err) });
+  }
 };
