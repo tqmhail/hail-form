@@ -12,10 +12,6 @@
       "allowedRoles": ["authenticated"]
     },
     {
-      "route": "/api/admin-list",
-      "allowedRoles": ["authenticated"]
-    },
-    {
       "route": "/api/*",
       "allowedRoles": ["anonymous"]
     },
