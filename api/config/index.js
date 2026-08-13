@@ -12,7 +12,8 @@ const REG_END   = new Date("2026-09-10T23:59:59+03:00");
 
 // ===== القائمة البيضاء: البُرد المسموح لها بفتح اللوحة =====
 const ALLOWED_ADMINS = [
-  "oshl@hotmail.com"
+  "oshl@hotmail.com",
+  "oshl2013@gmail.com"
 ];
 
 function getAdminEmail(req) {
