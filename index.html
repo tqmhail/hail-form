@@ -53,6 +53,9 @@
   label{display:block;font-weight:700;font-size:15px;margin-bottom:8px}
   .req{color:var(--danger);font-weight:900}
   .hint{font-size:12px;color:var(--muted);font-weight:400;margin-top:-4px;margin-bottom:8px}
+  .rt-tip{background:#eef7f4;border:1px solid #bfe3d6;border-right:4px solid var(--teal);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13.5px;line-height:1.9;color:#20423a}
+  .rt-tip b{color:var(--teal-d)}
+  .rt-ex{display:block;margin-top:6px;font-size:12.5px;color:#5a6b64;background:#fff;border-radius:8px;padding:8px 10px}
 
   input[type=text],input[type=email],input[type=tel],select{
     width:100%;font-family:inherit;font-size:15px;padding:12px 14px;border:1.6px solid var(--line);
@@ -248,7 +251,7 @@
         <div class="field">
           <label>تخصص الشهادة <span class="req">*</span></label>
           <div class="hint">اكتب التخصص كما هو مدوّن في الشهادة. يُكتب يدوياً ولا يُقبل اللصق.</div>
-          <input type="text" id="major" placeholder="مثال: علمي / أدبي / إداري..." onpaste="return false" ondrop="return false" autocomplete="off">
+          <input type="text" id="major" placeholder="اكتب التخصص كما هو مدوّن في شهادتك تماماً" onpaste="return false" ondrop="return false" autocomplete="off">
           <div class="msg" data-for="major">حقل تخصص الشهادة مطلوب.</div>
         </div>
       </div>
@@ -270,6 +273,7 @@
             <label class="opt"><input type="radio" name="requestType" value="إعادة إصدار لتغيير التخصص"><span>إعادة إصدار الشهادة لتغيير التخصص (دراسة الصفين الثاني والثالث الثانوي).</span></label>
             <label class="opt"><input type="radio" name="requestType" value="إعادة إصدار لتحسين المعدل"><span>إعادة إصدار الشهادة لتحسين المعدل (دراسة الصفين الثاني والثالث الثانوي).</span></label>
           </div>
+          <div class="rt-tip" id="rtTip" style="display:none"></div>
           <div class="msg" data-for="requestType">حقل نوع الطلب مطلوب.</div>
         </div>
       </div>
@@ -423,6 +427,24 @@
       clearMsg(g.dataset.radio);
     });
   });
+
+  // تلميح توضيحي لنوع الطلب (يظهر حسب الاختيار)
+  var RT_TIPS = {
+    'إعادة إصدار لتغيير التخصص':
+      '<b>تغيير التخصص (المسار):</b> الانتقال من المسار الدراسي السابق إلى مسار دراسي آخر، ويتطلب دراسة الصفين الثاني والثالث الثانوي لمدة عامين، وتصدر الشهادة بالمسار الجديد والمعدل الناتج عن الدراسة.<br><span class="rt-ex">مثال: إذا كانت الشهادة السابقة (أدبي) ويرغب الطالب في الانتقال إلى (المسار العام)، فيختار تغيير التخصص.</span>',
+    'إعادة إصدار لتحسين المعدل':
+      '<b>تحسين المعدل:</b> رفع المعدل مع البقاء في نفس المسار الدراسي السابق، ويتطلب دراسة الصفين الثاني والثالث الثانوي لمدة عامين، ويُحتسب المعدل الجديد وفق نتائج الدراسة.<br><span class="rt-ex">مثال: إذا كانت الشهادة السابقة (أدبي) بمعدل 75%، ويرغب الطالب في معدل أعلى مع بقائه في تخصص (أدبي)، فيختار تحسين المعدل.</span>',
+    'إعادة إصدار بنفس المعدل والتخصص (اختبار فقط)':
+      '<b>إعادة إصدار (اختبار فقط):</b> إعادة إصدار الشهادة بنفس المعدل والتخصص السابقين مع تحديث سنة التخرج فقط، دون تغيير المسار أو المعدل.'
+  };
+  document.querySelectorAll('input[name="requestType"]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var tip=el('rtTip');
+      if(RT_TIPS[this.value]){ tip.innerHTML=RT_TIPS[this.value]; tip.style.display='block'; }
+      else { tip.style.display='none'; }
+    });
+  });
+
   ['residence','eduDept','gradYear'].forEach(function(id){
     el(id).addEventListener('change',function(){ if(el(id).value) clearMsg(id); });
   });
