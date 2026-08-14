@@ -103,7 +103,8 @@
       '<div class="spacer"></div>'+
       '<button class="btn btn-x" onclick="exportXlsx()">⬇ تصدير Excel</button>'+
       '<button class="btn btn-c" onclick="exportCsv()">⬇ تصدير CSV</button>'+
-      '<button class="btn" style="background:#a9791f;color:#fff" id="allZipBtn" onclick="downloadAllZip(this)">⬇ تنزيل كل المرفقات (ZIP)</button>'+
+      '<button class="btn" style="background:#1a7f5a;color:#fff" id="allZipBtn" onclick="downloadAllZip(this,false)">⬇ تنزيل كل المرفقات (ZIP)</button>'+
+      '<button class="btn" style="background:#1a7f5a;color:#fff" id="allZipXlsxBtn" onclick="downloadAllZip(this,true)">⬇ تنزيل المرفقات + Excel (ZIP)</button>'+
       '<a class="btn" style="background:#eee;color:#333;text-decoration:none" href="/.auth/logout">خروج</a>'+
       '</div>'+
       '<div class="card"><table><thead><tr>'+
@@ -176,13 +177,18 @@
   }
 
   // ===== تنزيل مرفقات كل الطلبات في ZIP واحد =====
-  async function downloadAllZip(btn){
+  async function downloadAllZip(btn, withExcel){
     var list=filteredData();
     if(!list.length){ alert('لا توجد طلبات مطابقة.'); return; }
     var scope = list.length===DATA.length ? ('جميع الطلبات ('+list.length+' طلب)') : ('الطلبات المعروضة ('+list.length+' من '+DATA.length+')');
-    if(!confirm('سيتم تنزيل مرفقات '+scope+'. قد يستغرق دقائق حسب الأحجام. متابعة؟')) return;
+    if(!confirm('سيتم تنزيل مرفقات '+scope+(withExcel?' مع ملف Excel':'')+'. قد يستغرق دقائق حسب الأحجام. متابعة؟')) return;
     var old=btn.textContent; btn.disabled=true;
+    btn.style.background='#a9791f'; // أصفر أثناء التحميل
     var zip=new JSZip();
+    // إضافة ملف Excel داخل الحزمة إن طُلب
+    if(withExcel){
+      try{ var wb=buildWorkbook(list); var xlsxData=XLSX.write(wb,{type:'array',bookType:'xlsx'}); zip.file('بيانات_الطلبات.xlsx', xlsxData); }catch(e){}
+    }
     var done=0, failed=0;
     for(var idx=0; idx<list.length; idx++){
       var r=list[idx]; var docs=docList(r);
@@ -205,6 +211,7 @@
     var a=document.createElement('a'); a.href=URL.createObjectURL(content);
     a.download='المرفقات_'+stamp()+'.zip'; a.click();
     btn.textContent=old; btn.disabled=false;
+    btn.style.background='#1a7f5a'; // إعادة للأخضر
     if(failed) alert('اكتمل التنزيل. تعذّر تحميل '+failed+' ملفاً (قد تكون طلبات قديمة).');
   }
 
@@ -216,52 +223,58 @@
     });
   }
 
-  function exportXlsx(){
-    if(typeof XLSX==='undefined'){ alert('تعذّر تحميل مكتبة Excel. تحقّق من اتصال الإنترنت وأعد المحاولة، أو استخدم تصدير CSV.'); return; }
-    var rows=exportData();
-    if(!rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
-    var headers=Object.keys(rows[0]);
-    var nCols=headers.length;
-    // بناء الورقة يدوياً مع صفوف ترويسة
+  // بناء ملف Excel المزيّن من قائمة طلبات — يُستخدم للتصدير وللتضمين في ZIP
+  function buildWorkbook(list){
+    var rows=(list||filteredData()).map(function(r){
+      var o={};
+      COLS.forEach(function(c){ o[c[1]] = c[0]==='submittedAt'? fmtDate(r[c[0]]) : (r[c[0]]||''); });
+      return o;
+    });
+    var headers=Object.keys(rows[0]||{});
+    var nCols=headers.length||1;
     var aoa=[];
-    aoa.push(['وزارة التعليم — الإدارة العامة للتعليم بمنطقة حائل — إدارة تقويم الأداء المعرفي والمهاري']);
+    aoa.push(['وزارة التعليم — الإدارة العامة للتعليم بمنطقة حائل']);
+    aoa.push(['مساعد مدير عام التعليم - إدارة تقويم الأداء المعرفي والمهاري']);
     aoa.push(['استمارة طلبات التسجيل المبدئي لإعادة إصدار شهادة الثانوية العامة 1448هـ']);
     aoa.push(['تاريخ التصدير: '+new Date().toLocaleString('ar-SA')+'    -    عدد الطلبات: '+rows.length]);
-    aoa.push([]); // صف فارغ
-    aoa.push(headers); // رأس الأعمدة
+    aoa.push([]);
+    aoa.push(headers);
     rows.forEach(function(r){ aoa.push(headers.map(function(h){return r[h];})); });
 
     var ws=XLSX.utils.aoa_to_sheet(aoa);
-    // دمج صفوف الترويسة عبر كل الأعمدة
     ws['!merges']=[
       {s:{r:0,c:0},e:{r:0,c:nCols-1}},
       {s:{r:1,c:0},e:{r:1,c:nCols-1}},
-      {s:{r:2,c:0},e:{r:2,c:nCols-1}}
+      {s:{r:2,c:0},e:{r:2,c:nCols-1}},
+      {s:{r:3,c:0},e:{r:3,c:nCols-1}}
     ];
-    // عرض الأعمدة
     ws['!cols']=headers.map(function(h){
       if(h==='الاسم الرباعي'||h==='نوع الطلب') return {wch:28};
-      if(h==='وقت التقديم') return {wch:20};
+      if(h==='وقت التقديم') return {wch:22};
       if(h==='البريد') return {wch:22};
       return {wch:14};
     });
-    // ارتفاع صفوف الترويسة
-    ws['!rows']=[{hpt:26},{hpt:20},{hpt:18},{hpt:6},{hpt:20}];
+    ws['!rows']=[{hpt:26},{hpt:18},{hpt:18},{hpt:16},{hpt:6},{hpt:20}];
     ws['!views']=[{RTL:true}];
-
-    // تنسيق الخلايا (عناوين وألوان)
     function style(addr, s){ if(ws[addr]) ws[addr].s=s; }
     style('A1',{font:{bold:true,sz:14,color:{rgb:'0F6E6E'}},alignment:{horizontal:'center',vertical:'center'}});
-    style('A2',{font:{bold:true,sz:11,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
-    style('A3',{font:{sz:9,color:{rgb:'666666'}},alignment:{horizontal:'center'}});
-    // رأس الأعمدة (الصف 5 = index 4)
+    style('A2',{font:{bold:true,sz:10,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
+    style('A3',{font:{bold:true,sz:11,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
+    style('A4',{font:{sz:9,color:{rgb:'666666'}},alignment:{horizontal:'center'}});
     for(var c=0;c<nCols;c++){
-      var addr=XLSX.utils.encode_cell({r:4,c:c});
+      var addr=XLSX.utils.encode_cell({r:5,c:c});
       style(addr,{font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0F6E6E'}},alignment:{horizontal:'center'}});
     }
-
     var wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
     XLSX.utils.book_append_sheet(wb, ws, "الطلبات");
+    return wb;
+  }
+
+  function exportXlsx(){
+    if(typeof XLSX==='undefined'){ alert('تعذّر تحميل مكتبة Excel. تحقّق من اتصال الإنترنت وأعد المحاولة، أو استخدم تصدير CSV.'); return; }
+    var list=filteredData();
+    if(!list.length){ alert('لا توجد بيانات للتصدير.'); return; }
+    var wb=buildWorkbook(list);
     XLSX.writeFile(wb, "طلبات_الشهادة_"+stamp()+".xlsx");
   }
 
