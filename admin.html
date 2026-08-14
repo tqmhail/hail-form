@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>لوحة الطلبات — الإدارة العامة للتعليم بمنطقة حائل</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx-js-style/1.2.0/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{--teal:#0f6e6e;--teal-d:#0a5252;--teal-t:#e6f2f2;--ink:#1f2d2d;--muted:#6b7b7b;--line:#d5dede;--bg:#eef3f3;--ok:#1a7f5a;--gold:#a9791f}
@@ -23,6 +23,8 @@
   .btn-c{background:var(--teal);color:#fff}
   .btn:hover{opacity:.9}
   .search{flex:1;min-width:200px;font-family:inherit;font-size:14px;padding:11px 14px;border:1.6px solid var(--line);border-radius:10px;text-align:right}
+  .datebox{font-size:13px;font-weight:700;color:var(--teal-d);display:flex;align-items:center;gap:6px}
+  .datebox input{font-family:inherit;font-size:13px;padding:8px 10px;border:1.6px solid var(--line);border-radius:8px}
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:70vh}
   table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
   th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
@@ -57,7 +59,16 @@
     ["eduDept","إدارة التعليم"],["gradYear","عام التخرج"],["major","التخصص"],
     ["requestType","نوع الطلب"]
   ];
-  function fmtDate(iso){ if(!iso) return ""; try{return new Date(iso).toLocaleString('ar-SA');}catch(e){return iso;} }
+  function fmtDate(iso){
+    if(!iso) return "";
+    try{
+      var d=new Date(iso);
+      var hijri=d.toLocaleDateString('ar-SA-u-ca-islamic',{year:'numeric',month:'2-digit',day:'2-digit'});
+      var greg=d.toLocaleDateString('en-GB',{year:'numeric',month:'2-digit',day:'2-digit'});
+      var time=d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+      return hijri+' ('+greg+'م) '+time;
+    }catch(e){return iso;}
+  }
   function blobPath(url){ var i=url.indexOf('/documents/'); var p= i>-1?url.substring(i+'/documents/'.length):''; try{return decodeURIComponent(p);}catch(e){return p;} }
   function proxyUrl(url){ return '/api/config?action=file&blob='+encodeURIComponent(blobPath(url)); }
   function docList(r){ return (r.documents||'').split('\n').filter(Boolean); }
@@ -78,24 +89,53 @@
 
   function render(){
     var html='<div class="bar">'+
-      '<div class="count">إجمالي الطلبات: '+DATA.length+'</div>'+
+      '<div class="count" id="countBox">إجمالي الطلبات: '+DATA.length+'</div>'+
       '<input class="search" id="search" placeholder="بحث بالاسم أو الهوية أو الجوال…">'+
+      '<div class="datebox">من: <input type="date" id="dateFrom"></div>'+
+      '<div class="datebox">إلى: <input type="date" id="dateTo"></div>'+
+      '<button class="btn" style="background:#eef3f3;color:#0a5252" onclick="clearDates()">مسح الفلترة</button>'+
       '<div class="spacer"></div>'+
       '<button class="btn btn-x" onclick="exportXlsx()">⬇ تصدير Excel</button>'+
       '<button class="btn btn-c" onclick="exportCsv()">⬇ تصدير CSV</button>'+
+      '<button class="btn" style="background:#a9791f;color:#fff" id="allZipBtn" onclick="downloadAllZip(this)">⬇ تنزيل كل المرفقات (ZIP)</button>'+
       '<a class="btn" style="background:#eee;color:#333;text-decoration:none" href="/.auth/logout">خروج</a>'+
       '</div>'+
       '<div class="card"><table><thead><tr>'+
         COLS.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+
         '<th>المستندات</th><th>تنزيل</th></tr></thead><tbody id="tbody"></tbody></table></div>';
     document.getElementById('content').innerHTML=html;
-    document.getElementById('search').addEventListener('input',function(){drawRows(this.value.trim());});
-    drawRows('');
+    document.getElementById('search').addEventListener('input',function(){drawRows();});
+    document.getElementById('dateFrom').addEventListener('change',drawRows);
+    document.getElementById('dateTo').addEventListener('change',drawRows);
+    drawRows();
   }
 
-  function drawRows(q){
+  // التصفية الموحّدة: بحث + تاريخ. تُرجع الطلبات المطابقة.
+  function filteredData(){
+    var q=(document.getElementById('search')||{}).value; q=q?q.trim():'';
+    var fromEl=document.getElementById('dateFrom'), toEl=document.getElementById('dateTo');
+    var from=fromEl&&fromEl.value?new Date(fromEl.value+'T00:00:00'):null;
+    var to=toEl&&toEl.value?new Date(toEl.value+'T23:59:59'):null;
+    return DATA.filter(function(r){
+      if(q && (r.fullName+' '+r.nationalId+' '+r.mobile).indexOf(q)===-1) return false;
+      if(from||to){
+        var d=r.submittedAt?new Date(r.submittedAt):null;
+        if(!d) return false;
+        if(from && d<from) return false;
+        if(to && d>to) return false;
+      }
+      return true;
+    });
+  }
+
+  function clearDates(){
+    var f=document.getElementById('dateFrom'), t=document.getElementById('dateTo');
+    if(f)f.value=''; if(t)t.value=''; drawRows();
+  }
+
+  function drawRows(){
     var tb=document.getElementById('tbody');
-    var rows=DATA.filter(function(r){ return !q || (r.fullName+' '+r.nationalId+' '+r.mobile).indexOf(q)>-1; });
+    var rows=filteredData();
     tb.innerHTML=rows.map(function(r){
       var cells=COLS.map(function(c){ var v=r[c[0]]||''; if(c[0]==='submittedAt') v=fmtDate(v); return '<td>'+String(v).replace(/</g,'&lt;')+'</td>'; }).join('');
       var docs=docList(r);
@@ -105,6 +145,8 @@
       return '<tr>'+cells+docCell+zipCell+'</tr>';
     }).join('');
     if(!rows.length) tb.innerHTML='<tr><td colspan="'+(COLS.length+2)+'" style="text-align:center;color:#6b7b7b;padding:30px">لا توجد نتائج</td></tr>';
+    var cnt=document.getElementById('countBox');
+    if(cnt) cnt.textContent = rows.length===DATA.length ? ('إجمالي الطلبات: '+DATA.length) : ('المعروض: '+rows.length+' من '+DATA.length);
   }
 
   async function downloadZip(idx, btn){
@@ -127,8 +169,41 @@
     btn.textContent=old; btn.disabled=false;
   }
 
+  // ===== تنزيل مرفقات كل الطلبات في ZIP واحد =====
+  async function downloadAllZip(btn){
+    var list=filteredData();
+    if(!list.length){ alert('لا توجد طلبات مطابقة.'); return; }
+    var scope = list.length===DATA.length ? ('جميع الطلبات ('+list.length+' طلب)') : ('الطلبات المعروضة ('+list.length+' من '+DATA.length+')');
+    if(!confirm('سيتم تنزيل مرفقات '+scope+'. قد يستغرق دقائق حسب الأحجام. متابعة؟')) return;
+    var old=btn.textContent; btn.disabled=true;
+    var zip=new JSZip();
+    var done=0, failed=0;
+    for(var idx=0; idx<list.length; idx++){
+      var r=list[idx]; var docs=docList(r);
+      var folderName=((r.fullName||'')+' - '+(r.nationalId||r.requestNo||'')).trim().replace(/[\\\/:*?"<>|]/g,'_');
+      var folder=zip.folder(folderName || ('طلب_'+(idx+1)));
+      for(var i=0;i<docs.length;i++){
+        try{
+          var resp=await fetch(proxyUrl(docs[i]));
+          if(!resp.ok) throw new Error('x');
+          var blob=await resp.blob();
+          var name=blobPath(docs[i]).split('/').pop() || ('ملف'+(i+1));
+          folder.file(name, blob);
+        }catch(e){ failed++; }
+      }
+      done++;
+      btn.textContent='جارٍ التحميل '+done+' من '+list.length+'...';
+    }
+    btn.textContent='جارٍ ضغط الملفات...';
+    var content=await zip.generateAsync({type:'blob'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(content);
+    a.download='المرفقات_'+stamp()+'.zip'; a.click();
+    btn.textContent=old; btn.disabled=false;
+    if(failed) alert('اكتمل التنزيل. تعذّر تحميل '+failed+' ملفاً (قد تكون طلبات قديمة).');
+  }
+
   function exportData(){
-    return DATA.map(function(r){
+    return filteredData().map(function(r){
       var o={};
       COLS.forEach(function(c){ o[c[1]] = c[0]==='submittedAt'? fmtDate(r[c[0]]) : (r[c[0]]||''); });
       return o;
@@ -137,15 +212,47 @@
 
   function exportXlsx(){
     var rows=exportData();
-    var ws=XLSX.utils.json_to_sheet(rows);
-    var headers=Object.keys(rows[0]||{});
+    if(!rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+    var headers=Object.keys(rows[0]);
+    var nCols=headers.length;
+    // بناء الورقة يدوياً مع صفوف ترويسة
+    var aoa=[];
+    aoa.push(['وزارة التعليم — الإدارة العامة للتعليم بمنطقة حائل']);
+    aoa.push(['استمارة طلبات التسجيل المبدئي لإعادة إصدار شهادة الثانوية العامة 1448هـ']);
+    aoa.push(['تاريخ التصدير: '+new Date().toLocaleString('ar-SA')+'    -    عدد الطلبات: '+rows.length]);
+    aoa.push([]); // صف فارغ
+    aoa.push(headers); // رأس الأعمدة
+    rows.forEach(function(r){ aoa.push(headers.map(function(h){return r[h];})); });
+
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    // دمج صفوف الترويسة عبر كل الأعمدة
+    ws['!merges']=[
+      {s:{r:0,c:0},e:{r:0,c:nCols-1}},
+      {s:{r:1,c:0},e:{r:1,c:nCols-1}},
+      {s:{r:2,c:0},e:{r:2,c:nCols-1}}
+    ];
+    // عرض الأعمدة
     ws['!cols']=headers.map(function(h){
       if(h==='الاسم الرباعي'||h==='نوع الطلب') return {wch:28};
       if(h==='وقت التقديم') return {wch:20};
       if(h==='البريد') return {wch:22};
       return {wch:14};
     });
+    // ارتفاع صفوف الترويسة
+    ws['!rows']=[{hpt:26},{hpt:20},{hpt:18},{hpt:6},{hpt:20}];
     ws['!views']=[{RTL:true}];
+
+    // تنسيق الخلايا (عناوين وألوان)
+    function style(addr, s){ if(ws[addr]) ws[addr].s=s; }
+    style('A1',{font:{bold:true,sz:14,color:{rgb:'0F6E6E'}},alignment:{horizontal:'center',vertical:'center'}});
+    style('A2',{font:{bold:true,sz:11,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
+    style('A3',{font:{sz:9,color:{rgb:'666666'}},alignment:{horizontal:'center'}});
+    // رأس الأعمدة (الصف 5 = index 4)
+    for(var c=0;c<nCols;c++){
+      var addr=XLSX.utils.encode_cell({r:4,c:c});
+      style(addr,{font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0F6E6E'}},alignment:{horizontal:'center'}});
+    }
+
     var wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
     XLSX.utils.book_append_sheet(wb, ws, "الطلبات");
     XLSX.writeFile(wb, "طلبات_الشهادة_"+stamp()+".xlsx");
