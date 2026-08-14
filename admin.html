@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>لوحة الطلبات — الإدارة العامة للتعليم بمنطقة حائل</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx-js-style/1.2.0/xlsx.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  // شبكة أمان: إن لم تُحمّل مكتبة Excel المزيّنة، حمّل البديل الموثوق
+  if (typeof XLSX === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+  }
+</script>
 <style>
   :root{--teal:#0f6e6e;--teal-d:#0a5252;--teal-t:#e6f2f2;--ink:#1f2d2d;--muted:#6b7b7b;--line:#d5dede;--bg:#eef3f3;--ok:#1a7f5a;--gold:#a9791f}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -211,6 +217,7 @@
   }
 
   function exportXlsx(){
+    if(typeof XLSX==='undefined'){ alert('تعذّر تحميل مكتبة Excel. تحقّق من اتصال الإنترنت وأعد المحاولة، أو استخدم تصدير CSV.'); return; }
     var rows=exportData();
     if(!rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
     var headers=Object.keys(rows[0]);
