@@ -102,9 +102,11 @@
       '<button class="btn" style="background:#eef3f3;color:#0a5252" onclick="clearDates()">مسح الفلترة</button>'+
       '<div class="spacer"></div>'+
       '<button class="btn btn-x" onclick="exportXlsx()">⬇ تصدير Excel</button>'+
+      /* --- زر CSV مخفي (لإظهاره: أزل الشرطتين قبل وبعد السطر التالي) ---
       '<button class="btn btn-c" onclick="exportCsv()">⬇ تصدير CSV</button>'+
-      '<button class="btn" style="background:#1a7f5a;color:#fff" id="allZipBtn" onclick="downloadAllZip(this,false)">⬇ تنزيل كل المرفقات (ZIP)</button>'+
-      '<button class="btn" style="background:#1a7f5a;color:#fff" id="allZipXlsxBtn" onclick="downloadAllZip(this,true)">⬇ تنزيل المرفقات + Excel (ZIP)</button>'+
+      --- نهاية إخفاء زر CSV --- */
+      '<button class="btn" style="background:#1a7f5a;color:#fff" onclick="downloadByGender(this,\'بنين\')">⬇ بنين (مرفقات + Excel)</button>'+
+      '<button class="btn" style="background:#1a7f5a;color:#fff" onclick="downloadByGender(this,\'بنات\')">⬇ بنات (مرفقات + Excel)</button>'+
       '<a class="btn" style="background:#eee;color:#333;text-decoration:none" href="/.auth/logout">خروج</a>'+
       '</div>'+
       '<div class="card"><table><thead><tr>'+
@@ -177,17 +179,17 @@
   }
 
   // ===== تنزيل مرفقات كل الطلبات في ZIP واحد =====
-  async function downloadAllZip(btn, withExcel){
-    var list=filteredData();
-    if(!list.length){ alert('لا توجد طلبات مطابقة.'); return; }
-    var scope = list.length===DATA.length ? ('جميع الطلبات ('+list.length+' طلب)') : ('الطلبات المعروضة ('+list.length+' من '+DATA.length+')');
-    if(!confirm('سيتم تنزيل مرفقات '+scope+(withExcel?' مع ملف Excel':'')+'. قد يستغرق دقائق حسب الأحجام. متابعة؟')) return;
+  // ===== تنزيل مرفقات جنس معيّن (بنين/بنات) مع ملف Excel خاص =====
+  async function downloadByGender(btn, gender){
+    var list=filteredData().filter(function(r){ return (r.gender||'')===gender; });
+    if(!list.length){ alert('لا توجد طلبات لفئة '+gender+' ضمن المعروض.'); return; }
+    if(!confirm('سيتم تنزيل مرفقات فئة «'+gender+'» ('+list.length+' طلب) مع ملف Excel. قد يستغرق دقائق. متابعة؟')) return;
     var old=btn.textContent; btn.disabled=true;
     btn.style.background='#a9791f'; // أصفر أثناء التحميل
     var zip=new JSZip();
-    // إضافة ملف Excel داخل الحزمة إن طُلب
-    if(withExcel){
-      try{ var wb=buildWorkbook(list); var xlsxData=XLSX.write(wb,{type:'array',bookType:'xlsx'}); zip.file('بيانات_الطلبات.xlsx', xlsxData); }catch(e){}
+    // ملف Excel خاص بهذه الفئة
+    if(typeof XLSX!=='undefined'){
+      try{ var wb=buildWorkbook(list); var xlsxData=XLSX.write(wb,{type:'array',bookType:'xlsx'}); zip.file('بيانات_'+gender+'.xlsx', xlsxData); }catch(e){}
     }
     var done=0, failed=0;
     for(var idx=0; idx<list.length; idx++){
@@ -209,7 +211,7 @@
     btn.textContent='جارٍ ضغط الملفات...';
     var content=await zip.generateAsync({type:'blob'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(content);
-    a.download='المرفقات_'+stamp()+'.zip'; a.click();
+    a.download='مرفقات_'+gender+'_'+stamp()+'.zip'; a.click();
     btn.textContent=old; btn.disabled=false;
     btn.style.background='#1a7f5a'; // إعادة للأخضر
     if(failed) alert('اكتمل التنزيل. تعذّر تحميل '+failed+' ملفاً (قد تكون طلبات قديمة).');
@@ -260,7 +262,7 @@
     style('A1',{font:{bold:true,sz:13,color:{rgb:'0F6E6E'}},alignment:{horizontal:'center',vertical:'center'}});
     style('A2',{font:{bold:true,sz:12,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
     style('A3',{font:{bold:true,sz:11,color:{rgb:'0A5252'}},alignment:{horizontal:'center'}});
-    style('A4',{font:{sz:9,color:{rgb:'666666'}},alignment:{horizontal:'center'}});
+    style('A4',{font:{bold:true,sz:9,color:{rgb:'333333'}},alignment:{horizontal:'center'}});
     for(var c=0;c<nCols;c++){
       var addr=XLSX.utils.encode_cell({r:5,c:c});
       style(addr,{font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'0F6E6E'}},alignment:{horizontal:'center'}});
