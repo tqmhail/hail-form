@@ -105,6 +105,7 @@
       /* --- زر CSV مخفي (لإظهاره: أزل الشرطتين قبل وبعد السطر التالي) ---
       '<button class="btn btn-c" onclick="exportCsv()">⬇ تصدير CSV</button>'+
       --- نهاية إخفاء زر CSV --- */
+      '<button class="btn" style="background:#1a7f5a;color:#fff" onclick="downloadAllZip(this,true)">⬇ تنزيل المرفقات + Excel (ZIP)</button>'+
       '<button class="btn" style="background:#1a7f5a;color:#fff" onclick="downloadByGender(this,\'بنين\')">⬇ بنين (مرفقات + Excel)</button>'+
       '<button class="btn" style="background:#1a7f5a;color:#fff" onclick="downloadByGender(this,\'بنات\')">⬇ بنات (مرفقات + Excel)</button>'+
       '<a class="btn" style="background:#eee;color:#333;text-decoration:none" href="/.auth/logout">خروج</a>'+
@@ -179,6 +180,44 @@
   }
 
   // ===== تنزيل مرفقات كل الطلبات في ZIP واحد =====
+  // ===== تنزيل كل المرفقات (بنين وبنات معاً) مع ملف Excel =====
+  async function downloadAllZip(btn, withExcel){
+    var list=filteredData();
+    if(!list.length){ alert('لا توجد طلبات مطابقة.'); return; }
+    var scope = list.length===DATA.length ? ('جميع الطلبات ('+list.length+' طلب)') : ('الطلبات المعروضة ('+list.length+' من '+DATA.length+')');
+    if(!confirm('سيتم تنزيل مرفقات '+scope+(withExcel?' مع ملف Excel':'')+'. قد يستغرق دقائق حسب الأحجام. متابعة؟')) return;
+    var old=btn.textContent; btn.disabled=true;
+    btn.style.background='#a9791f';
+    var zip=new JSZip();
+    if(withExcel && typeof XLSX!=='undefined'){
+      try{ var wb=buildWorkbook(list); var xlsxData=XLSX.write(wb,{type:'array',bookType:'xlsx'}); zip.file('بيانات_الطلبات.xlsx', xlsxData); }catch(e){}
+    }
+    var done=0, failed=0;
+    for(var idx=0; idx<list.length; idx++){
+      var r=list[idx]; var docs=docList(r);
+      var folderName=((r.fullName||'')+' - '+(r.nationalId||r.requestNo||'')).trim().replace(/[\\\/:*?"<>|]/g,'_');
+      var folder=zip.folder(folderName || ('طلب_'+(idx+1)));
+      for(var i=0;i<docs.length;i++){
+        try{
+          var resp=await fetch(proxyUrl(docs[i]));
+          if(!resp.ok) throw new Error('x');
+          var blob=await resp.blob();
+          var name=blobPath(docs[i]).split('/').pop() || ('ملف'+(i+1));
+          folder.file(name, blob);
+        }catch(e){ failed++; }
+      }
+      done++;
+      btn.textContent='جارٍ التحميل '+done+' من '+list.length+'...';
+    }
+    btn.textContent='جارٍ ضغط الملفات...';
+    var content=await zip.generateAsync({type:'blob'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(content);
+    a.download='جميع_المرفقات_'+stamp()+'.zip'; a.click();
+    btn.textContent=old; btn.disabled=false;
+    btn.style.background='#1a7f5a';
+    if(failed) alert('اكتمل التنزيل. تعذّر تحميل '+failed+' ملفاً (قد تكون طلبات قديمة).');
+  }
+
   // ===== تنزيل مرفقات جنس معيّن (بنين/بنات) مع ملف Excel خاص =====
   async function downloadByGender(btn, gender){
     var list=filteredData().filter(function(r){ return (r.gender||'')===gender; });
