@@ -14,6 +14,7 @@ const REG_END   = new Date("2026-09-10T23:59:59+03:00");
 const ALLOWED_ADMINS = [
   "oshl@hotmail.com",
   "sahar.alshammari2026@outlook.com",
+  "mharbi9703@moe.gov.sa",
   "oshl2013@hotmail.com"
 ];
 
